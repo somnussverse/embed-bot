@@ -7,8 +7,8 @@ const {
     Routes 
 } = require('discord.js');
 
-const TOKEN = 'YOUR_BOT_TOKEN_HERE';
-const CLIENT_ID = 'YOUR_CLIENT_ID_HERE';
+const TOKEN = 'MTQ5NzM0MTE1NTg0NTczNDYxMA.Gy-lWt.iIGFnkWJCgWI2WMvFGKBM40MBScZkA6s643ZJg';
+const CLIENT_ID = '1497341155845734610';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
