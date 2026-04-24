@@ -1,0 +1,14 @@
+{
+  "name": "discord-embed-bot",
+  "version": "1.0.0",
+  "description": "A bot to create custom boxed embeds and dividers",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  },
+  "author": "somnussverse",
+  "license": "ISC"
+}
