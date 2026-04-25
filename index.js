@@ -86,7 +86,7 @@ client.on('interactionCreate', async interaction => {
 const app = express();
 
 app.get("/", (req, res) => res.send("Bot is alive"));
-app.listen(process.env.PORT);
+app.listen(process.env.TOKEN);
     }
 });
 
