@@ -81,6 +81,12 @@ client.on('interactionCreate', async interaction => {
             .setColor('#B2EBF2'); // Match your theme color
 
         await interaction.reply({ embeds: [dividerEmbed] });
+
+        const express = require("express");
+const app = express();
+
+app.get("/", (req, res) => res.send("Bot is alive"));
+app.listen(process.env.PORT);
     }
 });
 
