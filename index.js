@@ -7,20 +7,14 @@ const {
     Routes
 } = require('discord.js');
 
-const express = require("express");
-const app = express();
-
-// ---------------- KEEP ALIVE SERVER ----------------
-app.get("/", (req, res) => {
-    res.send("Bot is alive");
-});
-
-// IMPORTANT: use Render PORT, NOT token or anything else
-app.listen(process.env.PORT || 3000);
-
 // ---------------- ENV VARIABLES ----------------
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
+
+if (!TOKEN || !CLIENT_ID) {
+    console.error("Missing TOKEN or CLIENT_ID in environment variables.");
+    process.exit(1);
+}
 
 // ---------------- DISCORD CLIENT ----------------
 const client = new Client({
@@ -61,7 +55,7 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
         );
         console.log("Commands registered.");
     } catch (err) {
-        console.error(err);
+        console.error("Command registration failed:", err);
     }
 })();
 
@@ -69,34 +63,45 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
-    if (interaction.commandName === 'box') {
-        const raw = interaction.options.getString('content');
-        const color = interaction.options.getString('color') || '#B2EBF2';
+    try {
+        if (interaction.commandName === 'box') {
+            const raw = interaction.options.getString('content');
+            const color = interaction.options.getString('color') || '#B2EBF2';
 
-        const sections = raw.split('|');
+            const sections = raw.split('|');
 
-        const embeds = sections.map(s => {
-            const [title, ...body] = s.split(':');
+            const embeds = sections.map(s => {
+                const [title, ...body] = s.split(':');
 
-            return new EmbedBuilder()
-                .setTitle(title?.trim() || "No title")
-                .setDescription(body.join(':').trim() || '\u200B')
-                .setColor(color);
-        });
+                return new EmbedBuilder()
+                    .setTitle(title?.trim() || "No title")
+                    .setDescription(body.join(':').trim() || '\u200B')
+                    .setColor(color);
+            });
 
-        return interaction.reply({ embeds });
-    }
+            return interaction.reply({ embeds });
+        }
 
-    if (interaction.commandName === 'divider') {
-        const url = interaction.options.getString('image_url');
+        if (interaction.commandName === 'divider') {
+            const url = interaction.options.getString('image_url');
 
-        const embed = new EmbedBuilder()
-            .setImage(url)
-            .setColor('#B2EBF2');
+            const embed = new EmbedBuilder()
+                .setImage(url)
+                .setColor('#B2EBF2');
 
-        return interaction.reply({ embeds: [embed] });
+            return interaction.reply({ embeds: [embed] });
+        }
+    } catch (err) {
+        console.error(err);
+        if (!interaction.replied) {
+            interaction.reply({ content: "Error executing command.", ephemeral: true });
+        }
     }
 });
 
 // ---------------- LOGIN ----------------
+client.once('ready', () => {
+    console.log(`Logged in as ${client.user.tag}`);
+});
+
 client.login(TOKEN);
