@@ -10,100 +10,93 @@ const {
 const express = require("express");
 const app = express();
 
-// --- KEEP ALIVE SERVER (RENDER REQUIREMENT) ---
-app.get("/", (req, res) => res.send("Bot is alive"));
+// ---------------- KEEP ALIVE SERVER ----------------
+app.get("/", (req, res) => {
+    res.send("Bot is alive");
+});
+
+// IMPORTANT: use Render PORT, NOT token or anything else
 app.listen(process.env.PORT || 3000);
 
-// --- ENV VARIABLES ---
+// ---------------- ENV VARIABLES ----------------
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 
-// --- DISCORD CLIENT ---
+// ---------------- DISCORD CLIENT ----------------
 const client = new Client({
     intents: [GatewayIntentBits.Guilds]
 });
 
-// --- SLASH COMMANDS ---
+// ---------------- SLASH COMMANDS ----------------
 const commands = [
     new SlashCommandBuilder()
         .setName('box')
         .setDescription('Create multiple boxed embeds')
         .addStringOption(option =>
             option.setName('content')
-                .setDescription('Use | to separate boxes (Title: Text | Title2: Text2)')
+                .setDescription('Use | to separate boxes')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('color')
-                .setDescription('Hex color code (e.g. #FFB280)')),
+                .setDescription('Hex color (optional)')),
 
     new SlashCommandBuilder()
         .setName('divider')
         .setDescription('Send a divider image')
         .addStringOption(option =>
             option.setName('image_url')
-                .setDescription('Direct image link')
+                .setDescription('Image URL')
                 .setRequired(true))
 ].map(cmd => cmd.toJSON());
 
-// --- REGISTER COMMANDS ---
+// ---------------- REGISTER COMMANDS ----------------
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 (async () => {
     try {
-        console.log("Refreshing slash commands...");
+        console.log("Registering slash commands...");
         await rest.put(
             Routes.applicationCommands(CLIENT_ID),
             { body: commands }
         );
-        console.log("Slash commands registered.");
+        console.log("Commands registered.");
     } catch (err) {
         console.error(err);
     }
 })();
 
-// --- INTERACTIONS ---
+// ---------------- INTERACTIONS ----------------
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
-    const { commandName, options } = interaction;
+    if (interaction.commandName === 'box') {
+        const raw = interaction.options.getString('content');
+        const color = interaction.options.getString('color') || '#B2EBF2';
 
-    // BOX COMMAND
-    if (commandName === 'box') {
-        const rawContent = options.getString('content');
-        const color = options.getString('color') || '#B2EBF2';
+        const sections = raw.split('|');
 
-        const sections = rawContent.split('|');
-
-        const embeds = sections.map(section => {
-            const [title, ...body] = section.split(':');
+        const embeds = sections.map(s => {
+            const [title, ...body] = s.split(':');
 
             return new EmbedBuilder()
-                .setTitle(title.trim())
+                .setTitle(title?.trim() || "No title")
                 .setDescription(body.join(':').trim() || '\u200B')
                 .setColor(color);
         });
 
-        if (embeds.length > 10) {
-            return interaction.reply({
-                content: "Max 10 boxes per message!",
-                ephemeral: true
-            });
-        }
-
-        await interaction.reply({ embeds });
+        return interaction.reply({ embeds });
     }
 
-    // DIVIDER COMMAND
-    if (commandName === 'divider') {
-        const url = options.getString('image_url');
+    if (interaction.commandName === 'divider') {
+        const url = interaction.options.getString('image_url');
 
         const embed = new EmbedBuilder()
             .setImage(url)
             .setColor('#B2EBF2');
 
-        await interaction.reply({ embeds: [embed] });
+        return interaction.reply({ embeds: [embed] });
     }
 });
 
-// --- LOGIN ---
+// ---------------- LOGIN ----------------
 client.login(TOKEN);
