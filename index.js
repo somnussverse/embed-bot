@@ -1,3 +1,15 @@
+const express = require('express');
+const app = express();
+
+// Render needs a web server to stay alive
+app.get('/', (req, res) => {
+    res.send('Bot is awake and running!');
+});
+
+app.listen(process.env.PORT || 3000, () => {
+    console.log('Web server is ready.');
+});
+
 const {
     Client,
     GatewayIntentBits,
@@ -28,7 +40,7 @@ const commands = [
         .setDescription('Create multiple boxed embeds')
         .addStringOption(option =>
             option.setName('content')
-                .setDescription('Use | to separate boxes')
+                .setDescription('Use | to separate boxes (Example: Title: Text | Title2: Text2)')
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('color')
@@ -46,7 +58,9 @@ const commands = [
 // ---------------- REGISTER COMMANDS ----------------
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
-(async () => {
+client.once('ready', async () => {
+    console.log(`Logged in as ${client.user.tag}`);
+    
     try {
         console.log("Registering slash commands...");
         await rest.put(
@@ -57,7 +71,7 @@ const rest = new REST({ version: '10' }).setToken(TOKEN);
     } catch (err) {
         console.error("Command registration failed:", err);
     }
-})();
+});
 
 // ---------------- INTERACTIONS ----------------
 client.on('interactionCreate', async interaction => {
@@ -70,13 +84,14 @@ client.on('interactionCreate', async interaction => {
 
             const sections = raw.split('|');
 
-            const embeds = sections.map(s => {
+            // Discord limits 10 embeds per message
+            const embeds = sections.slice(0, 10).map(s => {
                 const [title, ...body] = s.split(':');
 
                 return new EmbedBuilder()
                     .setTitle(title?.trim() || "No title")
                     .setDescription(body.join(':').trim() || '\u200B')
-                    .setColor(color);
+                    .setColor(color.startsWith('#') ? color : `#${color}`);
             });
 
             return interaction.reply({ embeds });
@@ -93,15 +108,10 @@ client.on('interactionCreate', async interaction => {
         }
     } catch (err) {
         console.error(err);
-        if (!interaction.replied) {
-            interaction.reply({ content: "Error executing command.", ephemeral: true });
+        if (!interaction.replied && !interaction.deferred) {
+            interaction.reply({ content: "Error executing command. Make sure your color code is valid.", ephemeral: true });
         }
     }
-});
-
-// ---------------- LOGIN ----------------
-client.once('ready', () => {
-    console.log(`Logged in as ${client.user.tag}`);
 });
 
 client.login(TOKEN);
