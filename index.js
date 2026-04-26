@@ -1,13 +1,29 @@
 const express = require('express');
 const app = express();
+const https = require('https');
 
-// Render needs a web server to stay alive
+// ---------------- WEB SERVER & SELF-PING ----------------
 app.get('/', (req, res) => {
-    res.send('Bot is awake and running!');
+    res.send('Embed Bot is awake and running!');
 });
 
-app.listen(process.env.PORT || 3000, () => {
-    console.log('Web server is ready.');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Web server is ready on port ${PORT}.`);
+    
+    // This visits your bot's own URL every 10 minutes to stay awake
+    setInterval(() => {
+        // Render provides the RENDER_EXTERNAL_HOSTNAME automatically
+        const hostname = process.env.RENDER_EXTERNAL_HOSTNAME;
+        if (hostname) {
+            const url = `https://${hostname}.onrender.com`; 
+            https.get(url, (res) => {
+                console.log('Self-ping successful: Status', res.statusCode);
+            }).on('error', (e) => {
+                console.error('Self-ping failed:', e.message);
+            });
+        }
+    }, 600000); // 10 minutes
 });
 
 const {
@@ -84,7 +100,6 @@ client.on('interactionCreate', async interaction => {
 
             const sections = raw.split('|');
 
-            // Discord limits 10 embeds per message
             const embeds = sections.slice(0, 10).map(s => {
                 const [title, ...body] = s.split(':');
 
@@ -109,7 +124,7 @@ client.on('interactionCreate', async interaction => {
     } catch (err) {
         console.error(err);
         if (!interaction.replied && !interaction.deferred) {
-            interaction.reply({ content: "Error executing command. Make sure your color code is valid.", ephemeral: true });
+            interaction.reply({ content: "Error executing command.", ephemeral: true });
         }
     }
 });
